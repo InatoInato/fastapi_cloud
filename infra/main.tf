@@ -53,6 +53,8 @@ resource "aws_security_group" "fastapi_sg" {
     ami           = data.aws_ami.ubuntu.id
     instance_type = "t2.micro"
 
+    associate_public_ip_address = true
+
     key_name = aws_key_pair.lab.key_name
 
     vpc_security_group_ids = [
