@@ -49,25 +49,43 @@ resource "aws_security_group" "fastapi_sg" {
     }
     }
 
-    resource "aws_instance" "fastapi" {
+resource "aws_instance" "fastapi" {
     ami           = data.aws_ami.ubuntu.id
     instance_type = "t2.micro"
 
-    associate_public_ip_address = true
-
     key_name = aws_key_pair.lab.key_name
 
-    vpc_security_group_ids = [
-        aws_security_group.fastapi_sg.id
-    ]
+    vpc_security_group_ids = [aws_security_group.fastapi_sg.id]
 
     user_data = <<-EOF
-            #!/bin/bash
-            apt update -y
-            apt install -y python3-pip python3-venv
-            python3 -m venv /opt/venv
-            /opt/venv/bin/pip install fastapi uvicorn
-        EOF
+    #!/bin/bash
+    set -euxo pipefail
+
+    exec > /var/log/user-data.log 2>&1
+
+    apt-get update
+    apt-get install -y docker.io git
+
+    systemctl enable docker
+    systemctl start docker
+
+    usermod -aG docker ubuntu
+
+    cd /opt
+
+    git clone https://github.com/InatoInato/fastapi_cloud.git
+
+    cd fastapi_cloud
+
+    docker build -t fastapi .
+
+    docker run -d \
+    --name fastapi \
+    --restart unless-stopped \
+    -p 80:8000 \
+    fastapi
+
+    EOF
 
     tags = {
         Name = "fastapi-server"
