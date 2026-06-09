@@ -1,36 +1,53 @@
-from fastapi import FastAPI, Request
 import logging
-import os
-from datetime import datetime
+import sys
+import uuid
+from pythonjsonlogger import jsonlogger
+from fastapi import FastAPI, Request
 
-# create logs directory
-os.makedirs("logs", exist_ok=True)
+def setup_logger():
+    logger = logging.getLogger()
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    return logger
 
-# setup logger
-logging.basicConfig(
-    filename="logs/app.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s"
-)
-
+logger = setup_logger()
 app = FastAPI()
 
-def write_log(msg: str):
-    logging.info(msg)
-    print(msg)  # also show in terminal (dev mode)
+# middleware — adds request_id to every single log automatically
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())[:8]
+    
+    logger.info("request started", extra={
+        "request_id": request_id,
+        "method": request.method,
+        "path": request.url.path,
+    })
+    
+    response = await call_next(request)
+    
+    logger.info("request finished", extra={
+        "request_id": request_id,
+        "status_code": response.status_code,
+    })
+    
+    return response
 
 @app.get("/")
 def home():
-    write_log("GET / called")
     return {"message": "hello cloud world"}
 
 @app.get("/health")
 def health():
-    write_log("GET /health called")
     return {"status": "ok"}
 
 @app.post("/echo")
 async def echo(request: Request):
     data = await request.json()
-    write_log(f"POST /echo with data: {data}")
+    logger.info("echo called", extra={"payload_size": len(str(data))})
     return {"you_sent": data}
