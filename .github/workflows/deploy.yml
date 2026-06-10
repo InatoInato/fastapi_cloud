@@ -17,10 +17,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-
           script: |
             cd /opt/fastapi_cloud
-
             git pull origin main
 
             sudo docker stop fastapi || true
@@ -29,7 +27,7 @@ jobs:
             sudo docker build -t fastapi .
 
             sudo docker run -d \
-              --name fastapi \
-              --restart unless-stopped \
-              -p 80:8000 \
-              fastapi
+                --name fastapi \
+                --restart unless-stopped \
+                -p 80:8000 \
+                fastapi
