@@ -38,6 +38,10 @@ async def log_requests(request: Request, call_next):
     
     return response
 
+app.get("/version")
+def version():
+    return {"version": "1.0"}
+
 @app.get("/")
 def home():
     return {"message": "hello cloud world"}
