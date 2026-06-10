@@ -19,15 +19,17 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /opt/fastapi_cloud
-            git pull origin main
+
+            git fetch --all
+            git reset --hard origin/main
 
             sudo docker stop fastapi || true
             sudo docker rm fastapi || true
 
-            sudo docker build -t fastapi .
+            sudo docker build --no-cache -t fastapi .
 
             sudo docker run -d \
-                --name fastapi \
-                --restart unless-stopped \
-                -p 80:8000 \
-                fastapi
+              --name fastapi \
+              --restart unless-stopped \
+              -p 80:8000 \
+              fastapi
