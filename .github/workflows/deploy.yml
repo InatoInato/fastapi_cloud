@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
-
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
@@ -20,10 +22,11 @@ jobs:
           script: |
             set -e
 
-            cd /opt
+            mkdir -p /home/ubuntu/apps
+            cd /home/ubuntu/apps
 
             if [ ! -d fastapi_cloud ]; then
-                git clone https://github.com/InatoInato/fastapi_cloud.git
+              git clone https://github.com/InatoInato/fastapi_cloud.git
             fi
 
             cd fastapi_cloud
@@ -31,13 +34,13 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
-            sudo docker stop fastapi || true
-            sudo docker rm fastapi || true
+            docker stop fastapi || true
+            docker rm fastapi || true
 
-            sudo docker build -t fastapi .
+            docker build -t fastapi .
 
-            sudo docker run -d \
-                --name fastapi \
-                --restart unless-stopped \
-                -p 80:8000 \
-                fastapi
+            docker run -d \
+              --name fastapi \
+              --restart unless-stopped \
+              -p 80:8000 \
+              fastapi
