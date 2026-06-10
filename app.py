@@ -40,7 +40,7 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/version")
 def version():
-    return {"version": "1.1"}
+    return {"version": "1.2"}
 
 @app.get("/")
 def home():
