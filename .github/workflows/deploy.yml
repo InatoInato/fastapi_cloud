@@ -18,7 +18,15 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /opt/fastapi_cloud
+            set -e
+
+            cd /opt
+
+            if [ ! -d fastapi_cloud ]; then
+                git clone https://github.com/InatoInato/fastapi_cloud.git
+            fi
+
+            cd fastapi_cloud
 
             git fetch --all
             git reset --hard origin/main
@@ -26,10 +34,10 @@ jobs:
             sudo docker stop fastapi || true
             sudo docker rm fastapi || true
 
-            sudo docker build --no-cache -t fastapi .
+            sudo docker build -t fastapi .
 
             sudo docker run -d \
-              --name fastapi \
-              --restart unless-stopped \
-              -p 80:8000 \
-              fastapi
+                --name fastapi \
+                --restart unless-stopped \
+                -p 80:8000 \
+                fastapi
