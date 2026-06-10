@@ -4,3 +4,4 @@ infra/.terraform/
 logs/
 __pycache__/
 *.pyc
+*.tfvars
