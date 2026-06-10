@@ -38,9 +38,9 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-app.get("/version")
+@app.get("/version")
 def version():
-    return {"version": "1.0"}
+    return {"version": "1.1"}
 
 @app.get("/")
 def home():
