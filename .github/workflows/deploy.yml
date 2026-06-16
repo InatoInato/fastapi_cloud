@@ -13,32 +13,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Get EC2 Public IP
+        id: ec2-ip
+        run: |
+          IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=fastapi-server" "Name=instance-state-name,Values=running" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+          echo "host=$IP" >> $GITHUB_OUTPUT
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ${{ steps.ec2-ip.outputs.host }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-
             mkdir -p /home/ubuntu/apps
             cd /home/ubuntu/apps
-
             if [ ! -d fastapi_cloud ]; then
               git clone https://github.com/InatoInato/fastapi_cloud.git
             fi
-
             cd fastapi_cloud
-
             git fetch --all
             git reset --hard origin/main
-
             docker stop fastapi || true
             docker rm fastapi || true
-
             docker build -t fastapi .
-
             docker run -d \
               --name fastapi \
               --restart unless-stopped \

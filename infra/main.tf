@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "eu-central-1"
+  region = "us-east-1"
 }
 
 data "aws_ami" "ubuntu" {
@@ -62,7 +62,7 @@ resource "aws_security_group" "fastapi_sg" {
   }
 }
 
-resource "aws_instance" "fastapi" {
+resource "aws_instance" "fastapi_cloud" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
@@ -89,7 +89,23 @@ resource "aws_instance" "fastapi" {
   }
 }
 
+# =========================================================================
+# This resource requests a static public IPv4 address from AWS pool 
+# and binds (associates) it to our "fastapi" EC2 instance.
+# =========================================================================
+resource "aws_eip" "fastapi_eip" {
+  instance = aws_instance.fastapi_cloud.id
+  domain   = "vpc" # Allocates the IP address inside your default VPC
+
+  tags = {
+    Name = "fastapi-static-ip"
+  }
+}
+
+# =========================================================================
+# We changed the source from aws_instance.fastapi.public_ip (dynamic)
+# =========================================================================
 output "public_ip" {
-  value       = aws_instance.fastapi.public_ip
-  description = "Public IP of FastAPI server"
+  value       = aws_eip.fastapi_eip.public_ip
+  description = "Permanent Static Elastic IP (EIP) of FastAPI server"
 }
