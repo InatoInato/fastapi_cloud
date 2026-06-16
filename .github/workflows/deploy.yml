@@ -27,6 +27,14 @@ jobs:
             --filters "Name=tag:Name,Values=fastapi-server" "Name=instance-state-name,Values=running" \
             --query "Reservations[*].Instances[*].PublicIpAddress" \
             --output text)
+          
+          echo "Fetched IP is: '$IP'"
+          
+          if [ -z "$IP" ]; then
+            echo "ERROR: No running EC2 instance found with tag Name=fastapi-server"
+            exit 1
+          fi
+          
           echo "host=$IP" >> $GITHUB_OUTPUT
 
       - name: Deploy to EC2
