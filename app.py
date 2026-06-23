@@ -29,7 +29,14 @@ async def log_requests(request: Request, call_next):
         "path": request.url.path,
     })
     
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "request failed",
+            extra={"request_id": request_id}
+        )
+        raise
     
     logger.info("request finished", extra={
         "request_id": request_id,
