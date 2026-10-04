@@ -1,80 +1,47 @@
 # AWS FastAPI playground
 
-A deliberately small FastAPI + PostgreSQL application for learning Docker,
-networking, AWS, and Terraform.
-
-## Local architecture
+Small Product API for learning Docker, networking, AWS, and Terraform.
 
 ```text
-Browser/curl -> localhost:8000 -> api container -> db:5432 -> PostgreSQL container
-                                      |
-                                      +-> JSON logs to stdout
+localhost:8000 -> API container -> db:5432 -> PostgreSQL volume
+                       └-> JSON logs to stdout
 ```
 
-Compose creates one private network. The API reaches PostgreSQL using the service
-name `db`; `localhost` inside the API container would point back to the API
-container, not PostgreSQL.
+Inside Compose, the API connects to the database by hostname `db`. PostgreSQL
+is not published on a host port.
 
-## Run
-
-Docker Desktop or another Docker engine must be running.
+## Run and test
 
 ```bash
-docker compose up --build
-```
-
-Then open <http://localhost:8000/docs> or check:
-
-```bash
+make up
+docker compose ps
 curl http://localhost:8000/health
+make test
+docker compose logs --tail=30 api
 ```
 
-No local PostgreSQL or `psql` installation is required. To use the client inside
-the database container:
+Wait until `api` is healthy in `docker compose ps` before running tests.
+`make test` checks CRUD against PostgreSQL, migration state, validation, health,
+logging, and both Compose configurations. Inspect the database with
+`docker compose exec db psql -U app -d products`. Open
+<http://localhost:8000/docs> to try the API manually.
+
+Stop the app and keep local database data with `make down`. To delete the local
+database volume too, run `docker compose down -v`.
+
+## External PostgreSQL
+
+For a later RDS lab, copy `.env.external.example` to `.env.external`, set the
+real database URL, then run migrations and the API with:
 
 ```bash
-docker compose exec db psql -U app -d products
+docker compose -f docker-compose.external-db.yml --env-file .env.external run --rm api alembic upgrade head
+docker compose -f docker-compose.external-db.yml --env-file .env.external up --build -d
 ```
 
-## CRUD examples
+Keep `.env.external` private. The example values do not connect to a real DB.
 
-```bash
-curl -X POST http://localhost:8000/products \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Keyboard","price":"89.90"}'
+## AWS
 
-curl http://localhost:8000/products
-curl http://localhost:8000/products/1
-
-curl -X PUT http://localhost:8000/products/1 \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Mechanical keyboard","price":"109.90"}'
-
-curl -X DELETE http://localhost:8000/products/1
-```
-
-Stop containers while preserving data:
-
-```bash
-docker compose down
-```
-
-Delete containers and the PostgreSQL data volume:
-
-```bash
-docker compose down -v
-```
-
-## Configuration
-
-Compose has local defaults, so `docker compose up` works immediately.
-Copy `.env.example` to `.env` only when you want to override them. PostgreSQL
-is only reachable on the Compose network; use `docker compose exec db psql` to
-inspect it. Source changes require `docker compose up --build` to rebuild the
-API image.
-
-## First Terraform lab
-
-See [terraform/README.md](terraform/README.md) for the step-by-step EC2 lab.
-It uses the same Compose project on one small VM. Terraform is not applied
-automatically; review the plan and AWS costs before creating resources.
+Start with [the first Terraform lab](infra/README.md). Run Terraform directly
+from `infra/`; add one AWS resource at a time and inspect each plan.

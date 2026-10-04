@@ -1,5 +1,7 @@
 import json
 import logging
+import sys
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
 from time import perf_counter
@@ -9,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import engine, get_db
 from app.models import Product
 
 
@@ -29,12 +31,18 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(entry)
 
 
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(JsonFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
 logger = logging.getLogger("products_api")
 
-app = FastAPI(title="Products API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    engine.dispose()
+
+
+app = FastAPI(title="Products API", version="1.0.0", lifespan=lifespan)
 
 
 class ProductInput(BaseModel):
@@ -52,7 +60,19 @@ class ProductResponse(ProductInput):
 @app.middleware("http")
 async def log_request(request, call_next):
     started = perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "request_failed",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": 500,
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
+            },
+        )
+        raise
     logger.info(
         "request_completed",
         extra={

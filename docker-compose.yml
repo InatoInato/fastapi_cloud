@@ -5,7 +5,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@db:5432/${POSTGRES_DB:-products}
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn main:app --host 0.0.0.0 --port 8000"
+            exec uvicorn main:app --host 0.0.0.0 --port 8000 --no-access-log"
     ports:
       - "${API_PORT:-8000}:8000"
     restart: unless-stopped

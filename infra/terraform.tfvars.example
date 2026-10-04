@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars only if you want to change the defaults.
+aws_region      = "us-east-1"
+public_key_path = "~/.ssh/aws-fastapi-lab.pub"
