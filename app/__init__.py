@@ -1,0 +1,1 @@
+"""Minimal Products API package."""
